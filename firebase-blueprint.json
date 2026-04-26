@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Definition of a product with its SKU and cost of goods sold.",
+      "type": "object",
+      "properties": {
+        "sku": { "type": "string", "description": "Unique identifier for the product" },
+        "name": { "type": "string" },
+        "hpp": { "type": "number", "description": "Cost of Goods Sold (Harga Pokok Produk)" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["sku", "name", "hpp"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A record of a single product sale on Shopee.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "productName": { "type": "string" },
+        "sku": { "type": "string" },
+        "quantity": { "type": "number" },
+        "price": { "type": "number" },
+        "adminFee": { "type": "number" },
+        "shippingFee": { "type": "number" },
+        "omzet": { "type": "number" },
+        "profit": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["date", "sku", "quantity", "price", "userId"]
+    },
+    "AdCampaign": {
+      "title": "Ad Campaign",
+      "description": "Shopee Ads performance data.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "campaignName": { "type": "string" },
+        "cost": { "type": "number" },
+        "salesFromAds": { "type": "number" },
+        "roas": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["date", "campaignName", "cost", "userId"]
+    },
+    "Receipt": {
+      "title": "Purchase Receipt",
+      "description": "Records of purchases from suppliers with attached images.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "supplier": { "type": "string" },
+        "total": { "type": "number" },
+        "note": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["date", "supplier", "total", "userId"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Master product list per user (or shared if globally defined, but here per user)"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Collection of sale records."
+    },
+    "/adCampaigns/{campaignId}": {
+      "schema": "AdCampaign",
+      "description": "Collection of ad performance records."
+    },
+    "/receipts/{receiptId}": {
+      "schema": "Receipt",
+      "description": "Collection of supplier purchase receipts."
+    }
+  }
+}

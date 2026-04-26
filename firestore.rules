@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidProduct(data) {
+      return data.userId == request.auth.uid &&
+             data.keys().hasAll(['sku', 'name', 'hpp', 'userId', 'updatedAt']);
+    }
+
+    function isValidSale(data) {
+      return data.userId == request.auth.uid &&
+             data.keys().hasAll(['date', 'productName', 'sku', 'quantity', 'price', 'adminFee', 'shippingFee', 'omzet', 'profit', 'userId']);
+    }
+
+    function isValidAdCampaign(data) {
+      return data.userId == request.auth.uid &&
+             data.keys().hasAll(['date', 'campaignName', 'cost', 'salesFromAds', 'roas', 'userId']);
+    }
+
+    function isValidReceipt(data) {
+      return data.userId == request.auth.uid &&
+             data.keys().hasAll(['date', 'supplier', 'total', 'note', 'userId', 'updatedAt']);
+    }
+
+    // --- Collection Matches ---
+
+    match /products/{productId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isOwner(existing().userId) && isValidProduct(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /sales/{saleId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(saleId) && isValidSale(incoming());
+      allow update: if isOwner(existing().userId) && isValidSale(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /adCampaigns/{campaignId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(campaignId) && isValidAdCampaign(incoming());
+      allow update: if isOwner(existing().userId) && isValidAdCampaign(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /receipts/{receiptId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(receiptId) && incoming().userId == request.auth.uid;
+      allow update: if isOwner(existing().userId) && incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+  }
+}

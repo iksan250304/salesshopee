@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['sku', 'name', 'hpp', 'userId', 'updatedAt']) &&
+             data.keys().size() == 5 &&
+             data.sku is string && data.sku.size() > 0 && data.sku.size() <= 100 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 500 &&
+             data.hpp is number && data.hpp >= 0 &&
+             data.userId == request.auth.uid &&
+             data.updatedAt is string;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll(['date', 'productName', 'sku', 'quantity', 'price', 'adminFee', 'shippingFee', 'omzet', 'profit', 'userId']) &&
+             data.keys().size() == 10 &&
+             data.date is string &&
+             data.productName is string &&
+             data.sku is string &&
+             data.quantity is number && data.quantity > 0 &&
+             data.price is number && data.price >= 0 &&
+             data.adminFee is number &&
+             data.shippingFee is number &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidAdCampaign(data) {
+      return data.keys().hasAll(['date', 'campaignName', 'cost', 'salesFromAds', 'roas', 'userId']) &&
+             data.keys().size() == 6 &&
+             data.date is string &&
+             data.campaignName is string &&
+             data.cost is number && data.cost >= 0 &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidReceipt(data) {
+      return data.keys().hasAll(['date', 'supplier', 'total', 'note', 'userId', 'updatedAt']) &&
+             data.keys().size() >= 6 &&
+             data.date is string &&
+             data.supplier is string &&
+             data.total is number && data.total >= 0 &&
+             data.userId == request.auth.uid;
+    }
+
+    // --- Collection Matches ---
+
+    match /products/{productId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isOwner(existing().userId) && isValidProduct(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /sales/{saleId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(saleId) && isValidSale(incoming());
+      allow update: if isOwner(existing().userId) && isValidSale(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /adCampaigns/{campaignId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(campaignId) && isValidAdCampaign(incoming());
+      allow update: if isOwner(existing().userId) && isValidAdCampaign(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /receipts/{receiptId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(receiptId) && isValidReceipt(incoming());
+      allow update: if isOwner(existing().userId) && isValidReceipt(incoming()) &&
+                    incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId);
+    }
+  }
+}

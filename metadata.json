@@ -1,0 +1,13 @@
+{
+  "name": "Shopee Sales Hub",
+  "description": "A comprehensive sales and ad management dashboard for Shopee sellers, featuring profit tracking, ROAS calculation, and digital receipt storage.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "Firebase Firestore",
+    "Firebase Authentication",
+    "Firebase Storage"
+  ]
+}
